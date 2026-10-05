@@ -1,5 +1,13 @@
 const PATCHBOOK_URL='https://patchbook-drab.vercel.app/';
 
+async function deliver(tabId,packet,attempt=0){
+  try{
+    await chrome.tabs.sendMessage(tabId,{type:'PATCHBOOK_DELIVER_CAPTURE',packet});
+  }catch{
+    if(attempt<8)setTimeout(()=>deliver(tabId,packet,attempt+1),400);
+  }
+}
+
 chrome.runtime.onMessage.addListener(async message=>{
   if(message?.type!=='PATCHBOOK_ELEMENT_SELECTED')return;
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
@@ -24,7 +32,7 @@ chrome.runtime.onMessage.addListener(async message=>{
   const listener=(tabId,info)=>{
     if(tabId!==captureTab.id||info.status!=='complete')return;
     chrome.tabs.onUpdated.removeListener(listener);
-    chrome.tabs.sendMessage(tabId,{type:'PATCHBOOK_DELIVER_CAPTURE',packet}).catch(()=>{});
+    setTimeout(()=>deliver(tabId,packet),500);
   };
   chrome.tabs.onUpdated.addListener(listener);
 });
