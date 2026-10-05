@@ -51,8 +51,53 @@ function selectorFor(el){
   return parts.join(' > ');
 }
 
+function reactFiberFor(el){
+  try{
+    const key=Object.keys(el).find(k=>k.startsWith('__reactFiber$')||k.startsWith('__reactInternalInstance$'));
+    return key?el[key]:null;
+  }catch{
+    return null;
+  }
+}
+
+function componentTypeName(type){
+  try{
+    if(typeof type==='function')return type.displayName||type.name||undefined;
+    if(type&&typeof type==='object'){
+      if(type.displayName)return type.displayName;
+      if(type.type)return componentTypeName(type.type);
+      if(type.render)return type.render.displayName||type.render.name||undefined;
+    }
+  }catch{}
+  return undefined;
+}
+
+function reactContext(el){
+  let fiber=reactFiberFor(el);
+  let component;
+  let source;
+  for(let depth=0;fiber&&depth<20;depth++,fiber=fiber.return){
+    const name=componentTypeName(fiber.type);
+    if(name&&!component)component=name;
+    const debug=fiber._debugSource;
+    if(debug?.fileName){
+      source=debug;
+      break;
+    }
+  }
+  if(!component&&!source)return {};
+  return {
+    framework:'react',
+    component,
+    sourceFile:source?.fileName,
+    sourceLine:source?.lineNumber,
+    sourceColumn:source?.columnNumber
+  };
+}
+
 function describe(el){
   const text=(el.innerText||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,180);
+  const react=reactContext(el);
   return {
     tag:el.tagName.toLowerCase(),
     id:el.id||undefined,
@@ -61,7 +106,8 @@ function describe(el){
     ariaLabel:el.getAttribute('aria-label')||undefined,
     text:text||undefined,
     selector:selectorFor(el),
-    component:el.getAttribute('data-component')||el.getAttribute('data-slot')||undefined
+    component:el.getAttribute('data-component')||el.getAttribute('data-slot')||react.component,
+    ...react
   };
 }
 
