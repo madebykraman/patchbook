@@ -16,6 +16,10 @@ export type BrowserCapture = {
       text?: string;
       selector: string;
       component?: string;
+      framework?: string;
+      sourceFile?: string;
+      sourceLine?: number;
+      sourceColumn?: number;
     };
   };
   image: string;
