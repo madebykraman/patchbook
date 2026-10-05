@@ -1,10 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
-import { McpServer } from '@modelcontextprotocol/server';
-import { serveStdio } from '@modelcontextprotocol/server/stdio';
-import * as z from 'zod/v4';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 
 const inbox=process.env.PATCHBOOK_INBOX
   ? path.resolve(process.env.PATCHBOOK_INBOX)
@@ -197,4 +196,5 @@ server.registerTool(
   }
 );
 
-await serveStdio(()=>server);
+const transport=new StdioServerTransport();
+await server.connect(transport);
