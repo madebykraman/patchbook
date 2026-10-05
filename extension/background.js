@@ -1,11 +1,8 @@
 const PATCHBOOK_URL='https://patchbook-drab.vercel.app/';
 
-async function deliver(tabId,packet,attempt=0){
-  try{
-    await chrome.tabs.sendMessage(tabId,{type:'PATCHBOOK_DELIVER_CAPTURE',packet});
-  }catch{
-    if(attempt<8)setTimeout(()=>deliver(tabId,packet,attempt+1),400);
-  }
+function captureKey(){
+  const id=crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2,10);
+  return 'patchbookCapture:'+id;
 }
 
 chrome.runtime.onMessage.addListener(async message=>{
@@ -27,12 +24,7 @@ chrome.runtime.onMessage.addListener(async message=>{
     image,
     fileName:(message.page.title||'browser-capture').replace(/[^a-z0-9-_]+/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,80)||'browser-capture'
   };
-  await chrome.storage.local.set({patchbookCapture:packet});
-  const captureTab=await chrome.tabs.create({url:PATCHBOOK_URL});
-  const listener=(tabId,info)=>{
-    if(tabId!==captureTab.id||info.status!=='complete')return;
-    chrome.tabs.onUpdated.removeListener(listener);
-    setTimeout(()=>deliver(tabId,packet),500);
-  };
-  chrome.tabs.onUpdated.addListener(listener);
+  const key=captureKey();
+  await chrome.storage.local.set({[key]:packet});
+  await chrome.tabs.create({url:PATCHBOOK_URL+'?captureId='+encodeURIComponent(key)});
 });
