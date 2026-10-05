@@ -19,7 +19,7 @@ export type ExportScreen = {
   fileName:string;
   image:string|null;
   viewport?:{width:number;height:number};
-  annotations:ExportNote[];
+  notes:ExportNote[];
 };
 
 export type ExportReview = {
@@ -36,7 +36,7 @@ function geometryLabel(g:ExportGeometry){
 }
 
 function screenBody(screen:ExportScreen){
-  if(!screen.annotations.length)return 'No annotations yet.';
+  if(!screen.notes.length)return 'No annotations yet.';
   return screen.annotations.map(n =>
     '### '+String(n.id).padStart(2,'0')+' · '+n.kind.toLowerCase()+
     '\n'+geometryLabel(n.geometry)+
