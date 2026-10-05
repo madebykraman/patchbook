@@ -37,7 +37,7 @@ function geometryLabel(g:ExportGeometry){
 
 function screenBody(screen:ExportScreen){
   if(!screen.notes.length)return 'No annotations yet.';
-  return screen.annotations.map(n =>
+  return screen.notes.map(n =>
     '### '+String(n.id).padStart(2,'0')+' · '+n.kind.toLowerCase()+
     '\n'+geometryLabel(n.geometry)+
     '\n\nInstruction: '+(n.text.trim() || '[No instruction written]')+
