@@ -6,7 +6,7 @@ import './styles.css';
 
 type Kind='BUG'|'CHANGE'|'ADD'|'REMOVE'|'KEEP';
 type Tool='PIN'|'RECT'|'ARROW';
-type Geometry={kind:'point';x:number;y:number}|{kind:'rect';x:number;y:number;width:number;height:number}|{kind:'arrow';x1:number;y1:number;x2:number;y2:number};
+type Geometry=any;
 type Note={id:number;kind:Kind;text:string;x:number;y:number;geometry:Geometry};
 type Snapshot={image:string|null;fileName:string;notes:Note[]};
 const meta:Record<Kind,string>={BUG:'Bug',CHANGE:'Change',ADD:'Add',REMOVE:'Remove',KEEP:'Keep'};
@@ -63,7 +63,7 @@ function App(){
    const id=nextId();const x=50,y=Math.min(88,42+notes.length*7);const nextNotes=[...notes,{id,kind,text,x,y,geometry:{kind:'point',x,y}}];
    setNotes(nextNotes);setSelectedId(id);setDraft('');record({image,fileName,notes:nextNotes});
  };
- const pointFromEvent=(e:React.PointerEvent<HTMLDivElement>)=>{
+ const pointFromEvent=(e:any)=>{
    const r=canvasRef.current!.getBoundingClientRect();
    return {x:Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100)),y:Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100))};
  };
@@ -88,7 +88,7 @@ function App(){
    const id=nextId(),nextNotes=[...notes,{id,kind,text:'',x,y,geometry}];
    setNotes(nextNotes);setSelectedId(id);record({image,fileName,notes:nextNotes});
  };
- const placePin=(e:React.MouseEvent<HTMLDivElement>)=>{
+ const placePin=(e:any)=>{
    if(!image||tool!=='PIN'||!canvasRef.current)return;
    const r=canvasRef.current.getBoundingClientRect(),x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100)),y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100)),id=nextId();
    const nextNotes=[...notes,{id,kind,text:'',x,y,geometry:{kind:'point',x,y}}];
