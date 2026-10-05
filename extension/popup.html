@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Patchbook Capture</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;width:250px;padding:16px;background:#0d0d0f;color:#f4f4f5;font:13px Inter,system-ui,sans-serif}
+    h1{font-size:15px;margin:0 0 5px}.sub{color:#777780;font-size:11px;line-height:1.45;margin-bottom:14px}
+    button{width:100%;height:36px;border:1px solid #eee;border-radius:8px;background:#eee;color:#111;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+    button:hover{background:#fff}.hint{font-size:9px;color:#55555d;margin-top:10px;line-height:1.45}
+  </style>
+</head>
+<body>
+  <h1>Patchbook Capture</h1>
+  <div class="sub">Select a live UI element. Patchbook will receive the screenshot plus browser context.</div>
+  <button id="capture">Select element</button>
+  <div class="hint">The picker records the URL, route, viewport, selector and useful accessibility metadata.</div>
+  <script src="popup.js"></script>
+</body>
+</html>
