@@ -28,6 +28,10 @@ export type ExportSource = {
     text?:string;
     selector:string;
     component?:string;
+    framework?:string;
+    sourceFile?:string;
+    sourceLine?:number;
+    sourceColumn?:number;
   };
 };
 
@@ -67,7 +71,7 @@ export function buildHandoff(review:ExportReview) {
   const body = review.screens.map(screen =>
     '## Screen: '+screen.fileName+
     (screen.viewport ? '\nViewport: '+screen.viewport.width+' × '+screen.viewport.height : '')+
-    (screen.source ? '\nSource: '+screen.source.url+(screen.source.element ? '\nElement: '+screen.source.element.tag+' · '+screen.source.element.selector : '') : '')+
+    (screen.source ? '\nSource: '+screen.source.url+(screen.source.element ? '\nElement: '+screen.source.element.tag+' · '+screen.source.element.selector+(screen.source.element.component ? '\nComponent: '+screen.source.element.component : '')+(screen.source.element.sourceFile ? '\nSource file: '+screen.source.element.sourceFile+(screen.source.element.sourceLine ? ':'+screen.source.element.sourceLine : '') : '') : '') : '')+
     '\n\n'+screenBody(screen)
   ).join('\n\n');
 
@@ -89,7 +93,7 @@ export function buildHandoff(review:ExportReview) {
 
 export function buildJSON(review:ExportReview) {
   return JSON.stringify({
-    version:4,
+    version:5,
     reviewId:review.reviewId,
     title:review.title,
     createdAt:review.createdAt,
