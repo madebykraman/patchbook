@@ -14,11 +14,29 @@ export type ExportNote = {
   status?:'open'|'done';
 };
 
+export type ExportSource = {
+  url:string;
+  title:string;
+  route:string;
+  viewport:{width:number;height:number};
+  element?:{
+    tag:string;
+    id?:string;
+    classes?:string[];
+    role?:string;
+    ariaLabel?:string;
+    text?:string;
+    selector:string;
+    component?:string;
+  };
+};
+
 export type ExportScreen = {
   id:string;
   fileName:string;
   image:string|null;
   viewport:{width:number;height:number}|null;
+  source?:ExportSource;
   notes:ExportNote[];
 };
 
@@ -80,6 +98,7 @@ export function buildJSON(review:ExportReview) {
       filename:screen.fileName,
       image:screen.image ? {width:screen.viewport?.width ?? null,height:screen.viewport?.height ?? null} : null,
       viewport:screen.viewport ?? null,
+      source:screen.source ?? null,
       annotations:screen.notes.map(n => ({
         id:n.id,
         type:n.kind.toLowerCase(),
