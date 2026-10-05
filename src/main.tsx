@@ -12,7 +12,8 @@ const meta:Record<Kind,string>={BUG:'Bug',CHANGE:'Change',ADD:'Add',REMOVE:'Remo
 function App(){
  const [image,setImage]=useState<string|null>(null),[fileName,setFileName]=useState('Current build'),[kind,setKind]=useState<Kind>('BUG'),[draft,setDraft]=useState(''),[notes,setNotes]=useState<Note[]>([]),[selectedId,setSelectedId]=useState<number|null>(null),[zoom,setZoom]=useState(1),[copied,setCopied]=useState(false);
  const [history,setHistory]=useState<Snapshot[]>([]),[historyIndex,setHistoryIndex]=useState(-1);
- const canvasRef=useRef<HTMLDivElement>(null);
+ const canvasRef=useRef<HTMLDivElement>(null), draggingId=useRef<number|null>(null), notesRef=useRef<Note[]>([]);
+ notesRef.current=notes;
  
  useEffect(()=>{
    const raw=localStorage.getItem('patchbook-session');
@@ -75,6 +76,18 @@ function App(){
    const nextNotes=notes.filter(v=>v.id!==id);setNotes(nextNotes);setSelectedId(null);record({image,fileName,notes:nextNotes});
  };
  const copy=async()=>{await navigator.clipboard.writeText(handoff);setCopied(true);window.setTimeout(()=>setCopied(false),1200)};
+ const movePin=(e:React.PointerEvent<HTMLDivElement>)=>{
+   const id=draggingId.current;if(id===null||!canvasRef.current)return;
+   const r=canvasRef.current.getBoundingClientRect();
+   const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
+   const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
+   setNotes(current=>current.map(n=>n.id===id?{...n,x,y}:n));
+ };
+ const finishPin=()=>{
+   if(draggingId.current===null)return;
+   draggingId.current=null;
+   record({image,fileName,notes:notesRef.current});
+ };
  const paste=(e:React.ClipboardEvent)=>{const item=Array.from(e.clipboardData.items).find(i=>i.type.startsWith('image/'));if(!item)return;const f=item.getAsFile();if(f){acceptFile(f);e.preventDefault()}};
 
  return <div className='app' onPaste={paste}>
@@ -91,8 +104,8 @@ function App(){
    <section className='stage'>
     <div className='stage-head'><div><div className='eyebrow'>REVIEW</div><div className='stage-title'>{fileName}</div></div><div className='stage-tools'><label className='secondary-btn'><Upload size={15}/> Replace image<input hidden type='file' accept='image/*' onChange={e=>acceptFile(e.target.files?.[0])}/></label><button className='icon-btn' title='Zoom out' aria-label='Zoom out' onClick={()=>setZoom(z=>Math.max(.6,z-.1))}><Minus size={16}/></button><span className='zoom-label'>{Math.round(zoom*100)}%</span><button className='icon-btn' title='Zoom in' aria-label='Zoom in' onClick={()=>setZoom(z=>Math.min(1.6,z+.1))}><Plus size={16}/></button></div></div>
     <div className='canvas-wrap'>
-     <div ref={canvasRef} className={'review-canvas'+(!image?' empty':'')} style={image?{transform:'scale('+zoom+')'}:undefined} onClick={placePin}>
-      {image?<><img src={image} alt='Current build' className='canvas-image'/>{notes.map(n=><button key={n.id} className={'pin '+n.kind.toLowerCase()+(selectedId===n.id?' selected':'')} style={{left:n.x+'%',top:n.y+'%'}} onClick={e=>{e.stopPropagation();setSelectedId(n.id)}}>{n.id}</button>)}</>:<label className='dropzone'><div className='drop-icon'><ImagePlus size={24}/></div><div className='drop-title'>Drop or paste a screenshot</div><div className='drop-copy'>Ctrl / ⌘ + V works while Patchbook is focused.</div><input hidden type='file' accept='image/*' onChange={e=>acceptFile(e.target.files?.[0])}/></label>}
+     <div ref={canvasRef} className={'review-canvas'+(!image?' empty':'')} style={image?{transform:'scale('+zoom+')'}:undefined} onClick={placePin} onPointerMove={movePin} onPointerUp={finishPin} onPointerCancel={finishPin}>
+      {image?<><img src={image} alt='Current build' className='canvas-image'/>{notes.map(n=><button key={n.id} className={'pin '+n.kind.toLowerCase()+(selectedId===n.id?' selected':'')} style={{left:n.x+'%',top:n.y+'%'}} onClick={e=>{e.stopPropagation();setSelectedId(n.id)}} onPointerDown={e=>{e.stopPropagation();draggingId.current=n.id;canvasRef.current?.setPointerCapture(e.pointerId);setSelectedId(n.id)}}>{n.id}</button>)}</>:<label className='dropzone'><div className='drop-icon'><ImagePlus size={24}/></div><div className='drop-title'>Drop or paste a screenshot</div><div className='drop-copy'>Ctrl / ⌘ + V works while Patchbook is focused.</div><input hidden type='file' accept='image/*' onChange={e=>acceptFile(e.target.files?.[0])}/></label>}
      </div>
     </div>
     <div className='canvas-foot'><span>Click the screenshot to place a numbered pin.</span><span className='count-pill'>{notes.length} {notes.length===1?'annotation':'annotations'}</span></div>
