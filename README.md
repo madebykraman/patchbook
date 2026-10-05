@@ -89,3 +89,7 @@ Patchbook now includes an unpacked Chrome MV3 extension under `extension/`. It l
 Capture packets are temporarily stored in `chrome.storage.local` under a generated key instead of pushing large screenshots through tab messaging. The Patchbook bridge consumes that key and removes it after import.
 
 The capture protocol is intentionally small and versioned as `patchbook-browser-capture/v1`. Source metadata is best-effort and never required for the core review flow.
+
+## Local MCP bridge
+
+A first local MCP server now lives under `mcp/`. It reads exported Patchbook JSON packets from a configurable inbox and exposes `list_reviews`, `get_latest_review`, `get_review`, and `get_annotation` to MCP-compatible coding agents. The current contract intentionally keeps the MCP layer read-only; automatic agent-inbox delivery is the next integration step.
