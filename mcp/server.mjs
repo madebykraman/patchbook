@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import * as z from 'zod/v4';
@@ -8,6 +9,11 @@ import * as z from 'zod/v4';
 const inbox=process.env.PATCHBOOK_INBOX
   ? path.resolve(process.env.PATCHBOOK_INBOX)
   : path.join(os.homedir(),'Downloads','Patchbook');
+const outbox=process.env.PATCHBOOK_OUTBOX
+  ? path.resolve(process.env.PATCHBOOK_OUTBOX)
+  : inbox;
+
+async function ensureDir(dir){ await fs.mkdir(dir,{recursive:true}); }
 
 async function reviewFiles(){
   try{
@@ -27,6 +33,33 @@ async function readReview(fileName){
   const review=JSON.parse(raw);
   if(!review||typeof review!=='object'||!Array.isArray(review.screens))throw new Error('Not a Patchbook review JSON file');
   return review;
+}
+
+async function writeReviewPacket(review){
+  await ensureDir(outbox);
+  const safeId=String(review.reviewId||Date.now()).replace(/[^a-zA-Z0-9_-]/g,'-');
+  const jsonPath=path.join(outbox,'patchbook-'+safeId+'.json');
+  const mdPath=path.join(outbox,'patchbook-'+safeId+'.md');
+  await fs.writeFile(jsonPath,JSON.stringify(review,null,2),'utf8');
+  const markdown=[
+    '# PATCHBOOK REVIEW',
+    '',
+    'Review: '+(review.title||'Untitled review'),
+    'Review ID: '+review.reviewId,
+    '',
+    ...(review.screens||[]).flatMap(screen=>[
+      '## Screen: '+screen.filename,
+      screen.viewport?'Viewport: '+screen.viewport.width+' × '+screen.viewport.height:'',
+      ...(screen.annotations||[]).flatMap(annotation=>[
+        '### '+String(annotation.id).padStart(2,'0')+' · '+annotation.type,
+        annotation.text||'[No instruction written]',
+        ''
+      ]),
+      ''
+    ])
+  ].filter(Boolean).join('\n');
+  await fs.writeFile(mdPath,markdown,'utf8');
+  return {jsonPath,mdPath};
 }
 
 async function allReviews(){
@@ -109,6 +142,21 @@ server.registerTool(
         text:JSON.stringify(match.review,null,2)
       }]
     };
+  }
+);
+
+server.registerTool(
+  'publish_review',
+  {
+    description:'Write a Patchbook review into the local agent inbox as JSON and Markdown. Use this after a review is ready for an agent.',
+    inputSchema:z.object({reviewId:z.string().min(1)})
+  },
+  async({reviewId})=>{
+    const items=await allReviews();
+    const match=items.find(item=>item.review.reviewId===reviewId);
+    if(!match)return {content:[{type:'text',text:'Patchbook review not found: '+reviewId}]};
+    const files=await writeReviewPacket(match.review);
+    return {content:[{type:'text',text:JSON.stringify({reviewId,files},null,2)}]};
   }
 );
 
