@@ -81,3 +81,9 @@ The first implementation should remain dependency-light and local-first. Archite
 - Codex / Claude Code / Cursor handoff adapters
 - Browser element metadata where available
 
+
+## Browser capture bridge
+
+Patchbook now includes an unpacked Chrome MV3 extension under `extension/`. It lets a reviewer select a live UI element, capture the visible tab, collect DOM/accessibility context, and open Patchbook with the resulting capture packet. The packet preserves the URL, route, viewport, selector, element metadata and screenshot. The bridge is local-first and does not require a Patchbook backend.
+
+The capture protocol is intentionally small and versioned as `patchbook-browser-capture/v1`, leaving room for React/source-map/component metadata and MCP delivery later.
