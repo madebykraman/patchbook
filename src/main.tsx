@@ -110,7 +110,8 @@ function App(){
  };
 
  const updateActive=(updater:(screen:Screen)=>Screen,shouldRecord=true)=>{
-  const next:Review={...review,screens:review.screens.map(s=>s.id===activeScreen.id?updater(s):s)};
+  const baseReview=reviewRef.current;
+  const next:Review={...baseReview,screens:baseReview.screens.map(s=>s.id===activeScreen.id?updater(s):s)};
   reviewRef.current=next;
   if(shouldRecord)record(next);
   setReview(next);
