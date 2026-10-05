@@ -60,6 +60,19 @@ function reactFiberFor(el){
   }
 }
 
+function normalizeSourceFile(value){
+  if(!value||typeof value!=='string')return undefined;
+  const normalized=value.replace(/\\/g,'/');
+  const srcIndex=normalized.lastIndexOf('/src/');
+  if(srcIndex>=0)return normalized.slice(srcIndex+1);
+  const appIndex=normalized.lastIndexOf('/app/');
+  if(appIndex>=0)return normalized.slice(appIndex+1);
+  const componentsIndex=normalized.lastIndexOf('/components/');
+  if(componentsIndex>=0)return normalized.slice(componentsIndex+1);
+  if(normalized.startsWith('file://'))return undefined;
+  return normalized.includes('/')?undefined:normalized;
+}
+
 function componentTypeName(type){
   try{
     if(typeof type==='function')return type.displayName||type.name||undefined;
