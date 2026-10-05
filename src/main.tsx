@@ -12,11 +12,10 @@ function App(){
  const [image,setImage]=useState<string|null>(null),[fileName,setFileName]=useState('Current build'),[kind,setKind]=useState<Kind>('BUG'),[draft,setDraft]=useState(''),[notes,setNotes]=useState<Note[]>([]),[selectedId,setSelectedId]=useState<number|null>(null),[zoom,setZoom]=useState(1),[copied,setCopied]=useState(false);
  const [history,setHistory]=useState<Snapshot[]>([]),[historyIndex,setHistoryIndex]=useState(-1);
  const canvasRef=useRef<HTMLDivElement>(null);
- const restored=useRef(false);
-
+ 
  useEffect(()=>{
    const raw=localStorage.getItem('patchbook-session');
-   if(!raw){setHistory([{image:null,fileName:'Current build',notes:[]}]);setHistoryIndex(0);restored.current=true;return}
+   if(!raw){setHistory([{image:null,fileName:'Current build',notes:[]}]);setHistoryIndex(0);return}
    try{
      const s=JSON.parse(raw);
      const restoredSnapshot:Snapshot={image:s.image??null,fileName:s.fileName??'Current build',notes:Array.isArray(s.notes)?s.notes:[]};
@@ -25,10 +24,9 @@ function App(){
    }catch{
      setHistory([{image:null,fileName:'Current build',notes:[]}]);setHistoryIndex(0);
    }
-   restored.current=true;
- },[]);
+  },[]);
 
- useEffect(()=>{if(restored.current)localStorage.setItem('patchbook-session',JSON.stringify({image,fileName,notes}))},[image,fileName,notes]);
+ useEffect(()=>{if(historyIndex>=0)localStorage.setItem('patchbook-session',JSON.stringify({image,fileName,notes}))},[image,fileName,notes,historyIndex]);
 
  const currentSnapshot=():Snapshot=>({image,fileName,notes});
  const record=(next:Snapshot)=>{
