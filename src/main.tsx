@@ -3,13 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Check, Clipboard, Download, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Undo2, Upload, X } from 'lucide-react';
 import { buildHandoff, buildJSON, downloadAnnotatedImage, downloadText, ExportGeometry } from './lib/export';
 import { loadState, saveState } from './lib/storage';
+import { BrowserCapture, isBrowserCapture } from './lib/capture';
 import './styles.css';
 
 type Kind='BUG'|'CHANGE'|'ADD'|'REMOVE'|'KEEP';
 type Tool='PIN'|'RECT'|'ARROW';
 type Geometry=ExportGeometry;
 type Note={id:number;kind:Kind;text:string;x:number;y:number;geometry:Geometry;priority:'low'|'normal'|'high';status:'open'|'done'};
-type Screen={id:string;fileName:string;image:string|null;viewport:{width:number;height:number}|null;notes:Note[]};
+type Screen={id:string;fileName:string;image:string|null;viewport:{width:number;height:number}|null;notes:Note[];source?:BrowserCapture['source']};
 type Review={reviewId:string;title:string;createdAt:string;screens:Screen[]};
 type HistorySnapshot=Review;
 const meta:Record<Kind,string>={BUG:'Bug',CHANGE:'Change',ADD:'Add',REMOVE:'Remove',KEEP:'Keep'};
@@ -66,6 +67,31 @@ function App(){
  useEffect(()=>{
   if(hydrated.current)void saveState(review);
  },[review]);
+
+ useEffect(()=>{
+  const handleCapture=(event:MessageEvent)=>{
+   if(event.source!==window || !isBrowserCapture(event.data))return;
+   const capture=event.data as BrowserCapture;
+   const screen:Screen={
+    id:newId(),
+    fileName:capture.fileName.replace(/\\.[^.]+$/,'') || capture.source.title || 'Browser capture',
+    image:capture.image,
+    viewport:capture.source.viewport,
+    source:capture.source,
+    notes:[]
+   };
+   const base=reviewRef.current;
+   const next:Review={...base,screens:[...base.screens,screen]};
+   reviewRef.current=next;
+   setReview(next);
+   record(next);
+   setActiveScreenId(screen.id);
+   setSelectedId(null);
+   setZoom(1);
+  };
+  window.addEventListener('message',handleCapture);
+  return()=>window.removeEventListener('message',handleCapture);
+ },[]);
 
  const activeScreen=review.screens.find(s=>s.id===activeScreenId) ?? review.screens[0];
  const image=activeScreen?.image ?? null;
