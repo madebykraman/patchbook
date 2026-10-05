@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Check, Clipboard, Download, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Undo2, Upload, X } from 'lucide-react';
 import { buildHandoff, buildJSON, downloadText } from './lib/export';
 import './styles.css';
