@@ -149,13 +149,15 @@ function App(){
   reader.onload=async()=>{
    const src=String(reader.result);
    const dims=await imageDimensions(src);
+   const base=reviewRef.current;
+   const current=base.screens.find(s=>s.id===activeScreenId) ?? base.screens[0];
    const screen:Screen={id:newId(),fileName:file.name.replace(/\.[^.]+$/,''),image:src,viewport:dims,notes:[]};
-   if(mode==='new'||activeScreen.image){
-    const next:Review={...review,screens:[...review.screens,screen]};
+   if(mode==='new'||current?.image){
+    const next:Review={...base,screens:[...base.screens,screen]};
     commit(next);
     setActiveScreenId(screen.id);
-   }else{
-    const next:Review={...review,screens:review.screens.map(s=>s.id===activeScreen.id?{...screen,id:s.id}:s)};
+   }else if(current){
+    const next:Review={...base,screens:base.screens.map(s=>s.id===current.id?{...screen,id:s.id}:s)};
     commit(next);
    }
    setSelectedId(null);
@@ -166,7 +168,8 @@ function App(){
 
  const addScreen=()=>{
   const screen=emptyScreen();
-  const next:Review={...review,screens:[...review.screens,screen]};
+  const base=reviewRef.current;
+  const next:Review={...base,screens:[...base.screens,screen]};
   commit(next);
   setActiveScreenId(screen.id);
   setSelectedId(null);
@@ -174,10 +177,11 @@ function App(){
  };
 
  const deleteScreen=(id:string)=>{
-  if(review.screens.length<=1)return;
-  const index=review.screens.findIndex(s=>s.id===id);
-  const nextScreens=review.screens.filter(s=>s.id!==id);
-  const next:Review={...review,screens:nextScreens};
+  const base=reviewRef.current;
+  if(base.screens.length<=1)return;
+  const index=base.screens.findIndex(s=>s.id===id);
+  const nextScreens=base.screens.filter(s=>s.id!==id);
+  const next:Review={...base,screens:nextScreens};
   commit(next);
   if(id===activeScreen.id){
    const nextActive=nextScreens[Math.max(0,index-1)] ?? nextScreens[0];
@@ -188,7 +192,7 @@ function App(){
 
  const handoff=useMemo(()=>buildHandoff(review),[review]);
  const nextId=()=>{
-  const ids=review.screens.flatMap(s=>s.notes.map(n=>n.id));
+  const ids=reviewRef.current.screens.flatMap(s=>s.notes.map(n=>n.id));
   return ids.length?Math.max(...ids)+1:1;
  };
 
@@ -264,7 +268,9 @@ function App(){
  };
  const switchScreen=(id:string)=>{setActiveScreenId(id);setSelectedId(null);setZoom(1)};
  const renameScreen=(id:string,value:string)=>{
-  const next:Review={...review,screens:review.screens.map(s=>s.id===id?{...s,fileName:value||'Untitled screen'}:s)};
+  const base=reviewRef.current;
+  const next:Review={...base,screens:base.screens.map(s=>s.id===id?{...s,fileName:value||'Untitled screen'}:s)};
+  reviewRef.current=next;
   setReview(next);
  };
 
@@ -305,7 +311,12 @@ function App(){
     {activeScreen.source?<div className='capture-context'>
       <div className='capture-context-head'><span>LIVE CAPTURE CONTEXT</span><span>DOM</span></div>
       <div className='capture-context-url'>{activeScreen.source.url}</div>
-      {activeScreen.source.element?<div className='capture-context-element'><strong>{activeScreen.source.element.tag}</strong><code>{activeScreen.source.element.selector}</code></div>:null}
+      {activeScreen.source.element?<div className='capture-context-element'>
+        <strong>{activeScreen.source.element.tag}</strong>
+        <code>{activeScreen.source.element.selector}</code>
+        {activeScreen.source.element.component?<span>Component: {activeScreen.source.element.component}</span>:null}
+        {activeScreen.source.element.sourceFile?<span>Source: {activeScreen.source.element.sourceFile}{activeScreen.source.element.sourceLine?':'+activeScreen.source.element.sourceLine:''}</span>:null}
+      </div>:null}
     </div>:null}
     <div className='tool-row'>{(['PIN','RECT','ARROW'] as Tool[]).map(t=><button key={t} className={'tool-chip '+(tool===t?'active':'')} onClick={()=>setTool(t)}>{t==='PIN'?'Pin':t==='RECT'?'Region':'Arrow'}</button>)}</div>
     <div className='kind-row'>{(Object.keys(meta) as Kind[]).map(k=><button key={k} className={'kind-chip '+k.toLowerCase()+(kind===k?' active':'')} onClick={()=>setKind(k)}>{meta[k]}</button>)}</div>
