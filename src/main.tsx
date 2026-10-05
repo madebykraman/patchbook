@@ -107,7 +107,7 @@ function App(){
    const r=canvasRef.current.getBoundingClientRect();
    const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
    const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
-   setNotes(current=>current.map(n=>n.id===id?{...n,x,y}:n));
+   setNotes(current=>current.map(n=>n.id===id?{...n,x,y,geometry:n.geometry.kind==='point'?{kind:'point',x,y}:n.geometry}:n));
  };
  const finishPin=()=>{
    if(draggingId.current===null)return;
