@@ -1,80 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { ArrowUpRight, Check, Clipboard, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Settings2, Undo2, Upload, X } from 'lucide-react';
+import { ArrowUpRight, Check, Clipboard, Download, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Settings2, Undo2, Upload, X } from 'lucide-react';
+import { buildHandoff, buildJSON, downloadText } from './lib/export';
 import './styles.css';
 
-type Kind = 'BUG' | 'CHANGE' | 'ADD' | 'REMOVE' | 'KEEP';
-type Note = { id: number; kind: Kind; text: string; x: number; y: number };
-const meta: Record<Kind, string> = { BUG: 'Bug', CHANGE: 'Change', ADD: 'Add', REMOVE: 'Remove', KEEP: 'Keep' };
-
-function App() {
-  const [image, setImage] = useState<string | null>(null);
-  const [fileName, setFileName] = useState('Current build');
-  const [kind, setKind] = useState<Kind>('BUG');
-  const [draft, setDraft] = useState('');
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [copied, setCopied] = useState(false);
-  const canvasRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const raw = localStorage.getItem('patchbook-session');
-    if (!raw) return;
-    try { const s = JSON.parse(raw); setImage(s.image ?? null); setFileName(s.fileName ?? 'Current build'); setNotes(Array.isArray(s.notes) ? s.notes : []); } catch {}
-  }, []);
-  useEffect(() => { localStorage.setItem('patchbook-session', JSON.stringify({ image, fileName, notes })); }, [image, fileName, notes]);
-
-  const handoff = useMemo(() => {
-    const lines = notes.length ? notes.map(n => `${String(n.id).padStart(2, '0')} · ${n.kind}\n${n.text.trim()}`).join('\n\n') : 'No annotations yet.';
-    return `PATCHBOOK REVIEW\n${fileName}\n\n${lines}\n\nIMPLEMENTATION RULE\nIncorporate each requested change. Do not alter unrelated areas.`;
-  }, [fileName, notes]);
-
-  const acceptFile = (file?: File) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => { setImage(String(reader.result)); setFileName(file.name.replace(/\.[^.]+$/, '')); setNotes([]); setSelectedId(null); };
-    reader.readAsDataURL(file);
-  };
-  const nextId = () => notes.length ? Math.max(...notes.map(n => n.id)) + 1 : 1;
-  const addNote = () => {
-    const text = draft.trim(); if (!text) return;
-    const id = nextId(); setNotes(n => [...n, { id, kind, text, x: 50, y: Math.min(88, 42 + n.length * 7) }]); setSelectedId(id); setDraft('');
-  };
-  const removeNote = (id: number) => { setNotes(n => n.filter(x => x.id !== id)); if (selectedId === id) setSelectedId(null); };
-  const updateSelected = (text: string) => setNotes(n => n.map(x => x.id === selectedId ? { ...x, text } : x));
-  const placePin = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!image || !canvasRef.current) return;
-    const r = canvasRef.current.getBoundingClientRect(); const x = ((e.clientX - r.left) / r.width) * 100; const y = ((e.clientY - r.top) / r.height) * 100; const id = nextId();
-    setNotes(n => [...n, { id, kind, text: '', x, y }]); setSelectedId(id);
-  };
-  const copy = async () => { await navigator.clipboard.writeText(handoff); setCopied(true); window.setTimeout(() => setCopied(false), 1200); };
-
-  return <div className='app'>
-    <header className='topbar'>
-      <div className='brand'><div className='brand-mark'>P</div><div><div className='brand-name'>Patchbook</div><div className='brand-sub'>Visual feedback for AI builds</div></div></div>
-      <div className='top-actions'><button className='icon-btn'><Undo2 size={17}/></button><button className='icon-btn'><Redo2 size={17}/></button><div className='top-divider'/><button className='icon-btn'><Settings2 size={17}/></button><button className='primary-btn' onClick={copy}>{copied ? <Check size={16}/> : <Clipboard size={16}/>} {copied ? 'Copied' : 'Copy AI handoff'}</button></div>
-    </header>
-    <main className='workspace'>
-      <section className='stage'>
-        <div className='stage-head'><div><div className='eyebrow'>REVIEW</div><div className='stage-title'>{fileName}</div></div><div className='stage-tools'>
-          <label className='secondary-btn'><Upload size={15}/> Replace image<input hidden type='file' accept='image/*' onChange={e => acceptFile(e.target.files?.[0])}/></label>
-          <button className='icon-btn' onClick={() => setZoom(z => Math.max(.6, z-.1))}><Minus size={16}/></button><span className='zoom-label'>{Math.round(zoom*100)}%</span><button className='icon-btn' onClick={() => setZoom(z => Math.min(1.6, z+.1))}><Plus size={16}/></button>
-        </div></div>
-        <div className='canvas-wrap'><div ref={canvasRef} className={'review-canvas' + (!image ? ' empty' : '')} onClick={placePin}>
-          {image ? <><img src={image} alt='Current build' className='canvas-image' style={{ transform: `scale(${zoom})` }}/>{notes.map(n => <button key={n.id} className={'pin ' + n.kind.toLowerCase() + (selectedId === n.id ? ' selected' : '')} style={{left: `${n.x}%`, top: `${n.y}%`}} onClick={e => {e.stopPropagation();setSelectedId(n.id)}}>{n.id}</button>)}</> : <label className='dropzone'><div className='drop-icon'><ImagePlus size={24}/></div><div className='drop-title'>Drop a screenshot here</div><div className='drop-copy'>or click to browse. Paste support comes next.</div><input hidden type='file' accept='image/*' onChange={e => acceptFile(e.target.files?.[0])}/></label>}
-        </div></div>
-        <div className='canvas-foot'><span>Click the screenshot to place a pin.</span><span className='count-pill'>{notes.length} {notes.length === 1 ? 'annotation' : 'annotations'}</span></div>
-      </section>
-      <aside className='notes-panel'>
-        <div className='notes-head'><div><div className='eyebrow'>PATCH NOTES</div><div className='notes-title'>Tell the AI what to fix.</div></div><div className='session-dot'/></div>
-        <div className='kind-row'>{(Object.keys(meta) as Kind[]).map(k => <button key={k} className={'kind-chip ' + k.toLowerCase() + (kind === k ? ' active' : '')} onClick={() => setKind(k)}>{meta[k]}</button>)}</div>
-        <div className='composer'><div className='composer-top'><span className={'kind-dot ' + kind.toLowerCase()}/><span>{meta[kind]}</span><span className='composer-number'>{notes.length + 1}</span></div><textarea value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => {(e.ctrlKey || e.metaKey) && e.key === 'Enter' && addNote()}} placeholder='e.g. Increase the space between the icon and title.'/><div className='composer-bottom'><span className='shortcut'>Ctrl / ⌘ + Enter</span><button className='send-btn' onClick={addNote}>Add note <Send size={14}/></button></div></div>
-        <div className='notes-list'>{notes.length === 0 ? <div className='empty-notes'><Layers3 size={18}/><div><strong>Start with the visible problem.</strong><span>Click the screenshot to place a pin, or write a note here.</span></div></div> : notes.map(n => <div key={n.id} className={'note-card' + (selectedId === n.id ? ' selected' : '')} onClick={() => setSelectedId(n.id)}><div className='note-number'>{String(n.id).padStart(2,'0')}</div><div className='note-body'><div className='note-meta'><span className={'type-label ' + n.kind.toLowerCase()}>{meta[n.kind]}</span><button className='delete-note' onClick={e => {e.stopPropagation();removeNote(n.id)}}><X size={13}/></button></div>{selectedId === n.id ? <textarea className='note-edit' value={n.text} onChange={e => updateSelected(e.target.value)} placeholder='Write the exact change...’/> : <div className='note-text'>{n.text || 'Write the exact change…'}</div>}</div><ArrowUpRight size={14} className='note-arrow'/></div>)}</div>
-        <div className='handoff-card'><div className='handoff-title-row'><span>AI HANDOFF</span><span className='ready'>READY</span></div><div className='handoff-preview'>{notes.length ? `${notes.length} structured ${notes.length === 1 ? 'instruction' : 'instructions'} + visual context` : 'Add notes to build the handoff.'}</div><button className='handoff-btn' onClick={copy}>{copied ? 'Copied to clipboard' : 'Copy structured brief'}<Clipboard size={14}/></button></div>
-      </aside>
-    </main>
-  </div>;
-}
-
+type Kind='BUG'|'CHANGE'|'ADD'|'REMOVE'|'KEEP'; type Note={id:number;kind:Kind;text:string;x:number;y:number};
+const meta:Record<Kind,string>={BUG:'Bug',CHANGE:'Change',ADD:'Add',REMOVE:'Remove',KEEP:'Keep'};
+function App(){
+ const [image,setImage]=useState<string|null>(null),[fileName,setFileName]=useState('Current build'),[kind,setKind]=useState<Kind>('BUG'),[draft,setDraft]=useState(''),[notes,setNotes]=useState<Note[]>([]),[selectedId,setSelectedId]=useState<number|null>(null),[zoom,setZoom]=useState(1),[copied,setCopied]=useState(false); const canvasRef=useRef<HTMLDivElement>(null);
+ useEffect(()=>{const raw=localStorage.getItem('patchbook-session');if(!raw)return;try{const s=JSON.parse(raw);setImage(s.image??null);setFileName(s.fileName??'Current build');setNotes(Array.isArray(s.notes)?s.notes:[])}catch{}},[]); useEffect(()=>{localStorage.setItem('patchbook-session',JSON.stringify({image,fileName,notes}))},[image,fileName,notes]);
+ const handoff=useMemo(()=>buildHandoff(fileName,notes),[fileName,notes]); const nextId=()=>notes.length?Math.max(...notes.map(n=>n.id))+1:1;
+ const acceptFile=(file?:File)=>{if(!file||!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=()=>{setImage(String(r.result));setFileName(file.name.replace(/\.[^.]+$/,''));setNotes([]);setSelectedId(null)};r.readAsDataURL(file)};
+ const addNote=()=>{const text=draft.trim();if(!text)return;const id=nextId();setNotes(n=>[...n,{id,kind,text,x:50,y:Math.min(88,42+n.length*7)}]);setSelectedId(id);setDraft('')};
+ const placePin=(e:React.MouseEvent<HTMLDivElement>)=>{if(!image||!canvasRef.current)return;const r=canvasRef.current.getBoundingClientRect();const x=((e.clientX-r.left)/r.width)*100,y=((e.clientY-r.top)/r.height)*100,id=nextId();setNotes(n=>[...n,{id,kind,text:'',x,y}]);setSelectedId(id)};
+ const copy=async()=>{await navigator.clipboard.writeText(handoff);setCopied(true);window.setTimeout(()=>setCopied(false),1200)}; const paste=(e:React.ClipboardEvent)=>{const item=Array.from(e.clipboardData.items).find(i=>i.type.startsWith('image/'));if(!item)return;const f=item.getAsFile();if(f){acceptFile(f);e.preventDefault()}};
+ return <div className='app' onPaste={paste}><header className='topbar'><div className='brand'><div className='brand-mark'>P</div><div><div className='brand-name'>Patchbook</div><div className='brand-sub'>Visual feedback for AI builds</div></div></div><div className='top-actions'><button className='icon-btn'><Undo2 size={17}/></button><button className='icon-btn'><Redo2 size={17}/></button><div className='top-divider'/><button className='icon-btn'><Settings2 size={17}/></button><button className='primary-btn' onClick={copy}>{copied?<Check size={16}/>:<Clipboard size={16}/>} {copied?'Copied':'Copy AI handoff'}</button></div></header>
+ <main className='workspace'><section className='stage'><div className='stage-head'><div><div className='eyebrow'>REVIEW</div><div className='stage-title'>{fileName}</div></div><div className='stage-tools'><label className='secondary-btn'><Upload size={15}/> Replace image<input hidden type='file' accept='image/*' onChange={e=>acceptFile(e.target.files?.[0])}/></label><button className='icon-btn' onClick={()=>setZoom(z=>Math.max(.6,z-.1))}><Minus size={16}/></button><span className='zoom-label'>{Math.round(zoom*100)}%</span><button className='icon-btn' onClick={()=>setZoom(z=>Math.min(1.6,z+.1))}><Plus size={16}/></button></div></div>
+ <div className='canvas-wrap'><div ref={canvasRef} className={'review-canvas'+(!image?' empty':'')} onClick={placePin}>{image?<><img src={image} alt='Current build' className='canvas-image' style={{transform:`scale(${zoom})`}}/>{notes.map(n=><button key={n.id} className={'pin '+n.kind.toLowerCase()+(selectedId===n.id?' selected':'')} style={{left:`${n.x}%`,top:`${n.y}%`}} onClick={e=>{e.stopPropagation();setSelectedId(n.id)}}>{n.id}</button>)}</>:<label className='dropzone'><div className='drop-icon'><ImagePlus size={24}/></div><div className='drop-title'>Drop or paste a screenshot</div><div className='drop-copy'>Ctrl / ⌘ + V works from anywhere in the app.</div><input hidden type='file' accept='image/*' onChange={e=>acceptFile(e.target.files?.[0])}/></label>}</div></div><div className='canvas-foot'><span>Click the screenshot to place a numbered pin.</span><span className='count-pill'>{notes.length} {notes.length===1?'annotation':'annotations'}</span></div></section>
+ <aside className='notes-panel'><div className='notes-head'><div><div className='eyebrow'>PATCH NOTES</div><div className='notes-title'>Tell the AI what to fix.</div></div><div className='session-dot'/></div><div className='kind-row'>{(Object.keys(meta) as Kind[]).map(k=><button key={k} className={'kind-chip '+k.toLowerCase()+(kind===k?' active':'')} onClick={()=>setKind(k)}>{meta[k]}</button>)}</div>
+ <div className='composer'><div className='composer-top'><span className={'kind-dot '+kind.toLowerCase()}/><span>{meta[kind]}</span><span className='composer-number'>{notes.length+1}</span></div><textarea value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')addNote()}} placeholder='e.g. Increase the space between the icon and title.'/><div className='composer-bottom'><span className='shortcut'>Ctrl / ⌘ + Enter</span><button className='send-btn' onClick={addNote}>Add note <Send size={14}/></button></div></div>
+ <div className='notes-list'>{notes.length===0?<div className='empty-notes'><Layers3 size={18}/><div><strong>Start with the visible problem.</strong><span>Click the screenshot to place a pin, or write a note here.</span></div></div>:notes.map(n=><div key={n.id} className={'note-card'+(selectedId===n.id?' selected':'')} onClick={()=>setSelectedId(n.id)}><div className='note-number'>{String(n.id).padStart(2,'0')}</div><div className='note-body'><div className='note-meta'><span className={'type-label '+n.kind.toLowerCase()}>{meta[n.kind]}</span><button className='delete-note' onClick={e=>{e.stopPropagation();setNotes(x=>x.filter(v=>v.id!==n.id));setSelectedId(null)}}><X size={13}/></button></div>{selectedId===n.id?<textarea className='note-edit' autoFocus value={n.text} onChange={e=>setNotes(x=>x.map(v=>v.id===n.id?{...v,text:e.target.value}:v))} placeholder='Write the exact change...'/ >:<div className='note-text'>{n.text||'Write the exact change…'}</div>}</div><ArrowUpRight size={14} className='note-arrow'/></div>)}</div>
+ <div className='handoff-card'><div className='handoff-title-row'><span>AI HANDOFF</span><span className='ready'>READY</span></div><div className='handoff-preview'>{notes.length?`${notes.length} structured ${notes.length===1?'instruction':'instructions'} + visual context`:'Add notes to build the handoff.'}</div><div className='handoff-actions'><button className='handoff-btn' onClick={copy}>{copied?'Copied':'Copy brief'}<Clipboard size={14}/></button><button className='handoff-icon' title='Download Markdown' onClick={()=>downloadText('patchbook-review.md',handoff,'text/markdown')}><Download size={14}/></button><button className='handoff-icon' title='Download JSON' onClick={()=>downloadText('patchbook-review.json',buildJSON(fileName,notes),'application/json')}><Download size={14}/></button></div></div></aside></main></div>}
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
