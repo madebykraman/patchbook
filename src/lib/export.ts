@@ -2,13 +2,23 @@ export type ExportNote = { id:number; kind:string; text:string; x:number; y:numb
 
 export function buildHandoff(fileName:string, notes:ExportNote[]) {
   const body = notes.length
-    ? notes.map(n => `${String(n.id).padStart(2,'0')} · ${n.kind}\n${n.text.trim() || '[No instruction written]'}`).join('\n\n')
+    ? notes.map(n => {
+        const location='Location: '+Math.round(n.x)+'% from left, '+Math.round(n.y)+'% from top';
+        return '### '+String(n.id).padStart(2,'0')+' · '+n.kind.toLowerCase()+'\\n'+location+'\\n\\nInstruction: '+(n.text.trim() || '[No instruction written]')+'\\nExpected result: The requested change is visible at this marked location without altering unrelated UI or behaviour.';
+      }).join('\\n\\n')
     : 'No annotations yet.';
-  return `# PATCHBOOK REVIEW\n\n**Screen:** ${fileName}\n\n${body}\n\n## Implementation rule\nIncorporate every requested change. Preserve unrelated behaviour and visual language. After implementation, re-check every marked area for regressions.`;
+  return '# PATCHBOOK REVIEW\\n\\nScreen: '+fileName+'\\n\\n## Findings\\n\\n'+body+'\\n\\n## Implementation constraints\\n- Treat every annotation as an explicit implementation request.\\n- Preserve unrelated behaviour, content, layout structure, and visual language.\\n- Do not “fix” unmarked areas unless required by the requested change.\\n- After implementation, re-check every marked area at the relevant viewport.\\n\\n## Verification\\n- Every requested annotation is addressed.\\n- No unrelated visual regressions were introduced.\\n- The revised screen matches the intent of the visual feedback.';
 }
 
 export function buildJSON(fileName:string, notes:ExportNote[]) {
-  return JSON.stringify({ version:1, source:{name:fileName}, annotations:notes.map(n => ({ id:n.id, type:n.kind, text:n.text, position:{x:n.x,y:n.y} })) }, null, 2);
+  return JSON.stringify({
+    version:2,
+    review:{screen:fileName,createdAt:new Date().toISOString()},
+    annotations:notes.map(n=>({
+      id:n.id,type:n.kind.toLowerCase(),text:n.text,
+      geometry:{kind:'point',x:n.x,y:n.y,coordinateSpace:'normalized-percent'}
+    }))
+  }, null, 2);
 }
 
 export function downloadText(name:string, content:string, type:string) {
