@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, Check, Clipboard, Download, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Settings2, Undo2, Upload, X } from 'lucide-react';
+import { ArrowUpRight, Check, Clipboard, Download, ImagePlus, Layers3, Minus, Plus, Redo2, Send, Undo2, Upload, X } from 'lucide-react';
 import { buildHandoff, buildJSON, downloadText } from './lib/export';
 import './styles.css';
 
@@ -83,8 +83,7 @@ function App(){
     <button className='icon-btn' title='Undo' aria-label='Undo' disabled={historyIndex<=0} onClick={undo}><Undo2 size={17}/></button>
     <button className='icon-btn' title='Redo' aria-label='Redo' disabled={historyIndex<0||historyIndex>=history.length-1} onClick={redo}><Redo2 size={17}/></button>
     <div className='top-divider'/>
-    <button className='icon-btn' title='Settings' aria-label='Settings'><Settings2 size={17}/></button>
-    <button className='primary-btn' onClick={copy}>{copied?<Check size={16}/>:<Clipboard size={16}/>} {copied?'Copied':'Copy AI handoff'}</button>
+    <button className='primary-btn' disabled={!notes.length} onClick={copy}>{copied?<Check size={16}/>:<Clipboard size={16}/>} {copied?'Copied':'Copy AI handoff'}</button>
    </div>
   </header>
   <main className='workspace'>
