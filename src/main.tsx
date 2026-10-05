@@ -38,7 +38,7 @@ function App(){
  const [draftShape,setDraftShape]=useState<Geometry|null>(null);
  const [history,setHistory]=useState<HistorySnapshot[]>([]);
  const [historyIndex,setHistoryIndex]=useState(-1);
- const historyIndexRef=useRef(-1);
+ const historyIndexRef=useRef(-1);\n const reviewRef=useRef(review);\n reviewRef.current=review;
  const hydrated=useRef(false);
  const canvasRef=useRef<HTMLDivElement>(null);
  const draggingId=useRef<number|null>(null);
@@ -69,7 +69,7 @@ function App(){
  const notes=activeScreen?.notes ?? [];
  notesRef.current=notes;
 
- const currentSnapshot=():Review=>JSON.parse(JSON.stringify(review)) as Review;
+ const currentSnapshot=():Review=>JSON.parse(JSON.stringify(reviewRef.current)) as Review;
  const record=(next:Review)=>{
   setHistory(prev=>{
    const idx=historyIndexRef.current;
@@ -108,7 +108,7 @@ function App(){
 
  const updateActive=(updater:(screen:Screen)=>Screen,shouldRecord=true)=>{
   const next:Review={...review,screens:review.screens.map(s=>s.id===activeScreen.id?updater(s):s)};
-  if(shouldRecord)commit(next); else setReview(next);
+  reviewRef.current=next;\n  if(shouldRecord)record(next);\n  setReview(next);
  };
 
  const acceptFile=(file?:File,mode:'replace'|'new'='replace')=>{
