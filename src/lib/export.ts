@@ -18,7 +18,7 @@ export type ExportScreen = {
   id:string;
   fileName:string;
   image:string|null;
-  viewport?:{width:number;height:number};
+  viewport:{width:number;height:number}|null;
   notes:ExportNote[];
 };
 
