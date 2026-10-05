@@ -108,3 +108,24 @@ function App(){
 }
 
 export default App;
+
+class ErrorBoundary extends React.Component<{children:React.ReactNode},{error:Error|null}> {
+ state={error:null as Error|null};
+ static getDerivedStateFromError(error:Error){return {error}};
+ componentDidCatch(error:Error,info:React.ErrorInfo){console.error('Patchbook render error',error,info);}
+ render(){
+  if(this.state.error){
+   return <main className='fatal-error'>
+    <div className='fatal-mark'>P</div>
+    <div className='eyebrow'>PATCHBOOK ERROR</div>
+    <h1>The review surface failed to load.</h1>
+    <p>Reload once. If this persists, copy the diagnostic below and send it with the deployment URL.</p>
+    <pre>{this.state.error.message}</pre>
+    <button onClick={()=>window.location.reload()}>Reload Patchbook</button>
+   </main>;
+  }
+  return this.props.children;
+ }
+}
+
+createRoot(document.getElementById('root')!).render(<React.StrictMode><ErrorBoundary><App/></ErrorBoundary></React.StrictMode>);
