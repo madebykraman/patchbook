@@ -67,6 +67,7 @@ export function buildHandoff(review:ExportReview) {
   const body = review.screens.map(screen =>
     '## Screen: '+screen.fileName+
     (screen.viewport ? '\nViewport: '+screen.viewport.width+' × '+screen.viewport.height : '')+
+    (screen.source ? '\nSource: '+screen.source.url+(screen.source.element ? '\nElement: '+screen.source.element.tag+' · '+screen.source.element.selector : '') : '')+
     '\n\n'+screenBody(screen)
   ).join('\n\n');
 
