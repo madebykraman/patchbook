@@ -84,6 +84,8 @@ The first implementation should remain dependency-light and local-first. Archite
 
 ## Browser capture bridge
 
-Patchbook now includes an unpacked Chrome MV3 extension under `extension/`. It lets a reviewer select a live UI element, capture the visible tab, collect DOM/accessibility context, and open Patchbook with the resulting capture packet. The packet preserves the URL, route, viewport, selector, element metadata and screenshot. The bridge is local-first and does not require a Patchbook backend.
+Patchbook now includes an unpacked Chrome MV3 extension under `extension/`. It lets a reviewer select a live UI element, capture the visible tab, collect DOM/accessibility context, and open Patchbook with the resulting capture packet. The packet preserves the URL, route, viewport, selector, element metadata and screenshot, plus opportunistic React component/source context when a development build exposes it. The bridge is local-first and does not require a Patchbook backend.
 
-The capture protocol is intentionally small and versioned as `patchbook-browser-capture/v1`, leaving room for React/source-map/component metadata and MCP delivery later.
+Capture packets are temporarily stored in `chrome.storage.local` under a generated key instead of pushing large screenshots through tab messaging. The Patchbook bridge consumes that key and removes it after import.
+
+The capture protocol is intentionally small and versioned as `patchbook-browser-capture/v1`. Source metadata is best-effort and never required for the core review flow.
