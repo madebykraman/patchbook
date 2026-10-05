@@ -80,7 +80,7 @@ export function buildJSON(review:ExportReview) {
       filename:screen.fileName,
       image:screen.image ? {width:screen.viewport?.width ?? null,height:screen.viewport?.height ?? null} : null,
       viewport:screen.viewport ?? null,
-      annotations:screen.annotations.map(n => ({
+      annotations:screen.notes.map(n => ({
         id:n.id,
         type:n.kind.toLowerCase(),
         text:n.text,
