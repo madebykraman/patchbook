@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Patchbook Capture",
+  "version": "0.1.0",
+  "description": "Capture a live browser element and send its visual + DOM context to Patchbook.",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Capture to Patchbook",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["picker.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://patchbook-drab.vercel.app/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
